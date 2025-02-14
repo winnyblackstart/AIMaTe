@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chat App</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #000000; }
+    .app { max-width: 600px; margin: 20px auto; padding: 20px; border-radius: 8px; background-color: #000; box-shadow: 0px 2px 10px rgba(0,0,0,0.1); }
+    
+    /* Styling for the profile cards section */
+    .profile-cards {justify-content: space-around; margin-bottom: 20px; background-color: none;}
+    .card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      border: 1px solid #121216;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      margin-bottom: 50px;
+      margin-top: 50px;
+      background-color: #161616;
+      
+      box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
+    }
+    .card img { width: 300px; height: 300px; border-radius: 50%; margin-bottom: 10px; }
+    .card:hover { background-color: #f0f0f0; }
+    .names {color: #fafafa}
+    .desc {color: #aaa}
+    #back {
+  background-color: #ccaa00; /* Dark yellow */
+  color: white;
+  border: none;
+  padding: 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+}
+
+
+#back:hover {
+  background-color: #FFC300; /* Slightly lighter yellow on hover */
+}
+    
+    /* Chat container styling */
+    .chat { display: flex; flex-direction: column; }
+    .messages { flex: 1; overflow-y: auto; margin-bottom: 10px; padding: 10px; background-color: #161616; border-radius: 8px; max-height: 600px; }
+    .input-container { display: flex; margin-top: 20px; }
+    .input-container textarea {
+    flex: 1;
+    padding: 10px;
+    border: 3px solid #ddd;
+    border-radius: 4px;
+    resize: none; /* Prevent resizing */
+    overflow-y: auto; /* Enable scrolling for overflow */
+    height: auto; /* Adjust height dynamically */
+    max-height: 200px; /* Maximum height before scrolling */
+    min-height: 10px; /* Minimum height */
+    line-height: 1.5; /* Line spacing */
+    box-sizing: border-box; /* Include padding in size calculations */
+    font-size: 16px; /* Set a readable font size */
+    width: 100%; /* Use full width of container */
+    white-space: pre-wrap; /* Ensure line breaks work */
+}
+    .input-container button { padding: 10px; border: none; background: #007BFF; color: white; cursor: pointer; border-radius: 4px; margin-left: 5px; }
+    .input-container button:hover { background: #0056b3; }
+
+    /* Styling for messages */
+    .message {
+      display: flex;
+      align-items: center;
+      margin-bottom: 50px;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 80%;
+    }
+    .message.you { justify-content: flex-end; background-color: #007BFF; color: white; margin-left: 30%; }
+    .message.character { justify-content: flex-start; background-color: none; color: white; margin-right: 25%; }
+    .message img { width: 30px; height: 30px; border-radius: 50%; margin-right: 10px; }
+    .message.character img { margin-left: 5px; top: 0; }
+    
+    .message span { word-wrap: break-word; }
+    
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="profile-cards">
+      <div class="card" onclick="selectAI('Mark', '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')">
+        <img src="mark.jpg" alt="Mark">
+        <div class="names">Mark</div>
+        <div class="desc">44 years man, divorce with</div>
+      </div>
+      <div class="card" onclick="selectAI('Sofia', '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')">
+        <img src="sofia.jpg" alt="Sofia">
+        <div class="names">Sofia</div>
+        <div class="desc">22 years Simple Girl, studying art and passionate about nature </div>
+      </div>
+      <div class="card" onclick="selectAI('Eva', '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')">
+        <img src="Eva.jpg" alt="Eva">
+        <div class="names">Eva</div>
+        <div class="desc">32 years rich woman</div>
+      </div>
+      <div class="card" onclick="selectAI('Ina', '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')">
+        <img src="ina.jpg" alt="Ina">
+        <div class="names">Ina</div>
+        <div class="desc">25 years Unbearable introvert</div>
+      </div>
+    </div>
+    <div class="chat" id="chatContainer" style="display: none;">
+      <button id="back">back</button>
+      <div class="messages" id="messages"></div>
+      <div class="input-container">
+        <textarea type="text" id="userMessage" placeholder="Type your message..." ></textarea>
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  //Object.keys(localStorage).forEach(key => key.startsWith('history_') && localStorage.removeItem(key));
+  //Object.keys(localStorage).forEach(key => key.startsWith('resume_') && localStorage.removeItem(key));
+const API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const prompts = {
+    startConversation: ['Ask me about my habit or so just to start conversation', 'Ask me about my location just to start chatting', 'Prompt me to take news, about me or any other news like information, weather in my place, etc'],
+    endConversation: ['Say goodbye because you have other things to do', 'Say you are tied because i speek too much', 'Give a random excuse to stop the conversation'],
+};
+let selectedAI = null;
+let delayQueue = [];
+let conversationActive = true;
+let ignoreUserUntil = 0;
+let bored = 0;
+
+const personalityPrompts = {
+    Sofia: "You are Sofia, a 22-year-old young woman studying art and passionate about nature but you're not the type that will talk about your passion unless it is somebody very important to you.",
+    Mark: "You are Mark, a 44-year-old divorced man with two child Olga a girl and Patrik a boy you should not expose your life unless you know the woman enough.",
+    Eva: "You are Eva a Millionaire woman ,you have spend all the time doing business now it time to have a partner that is why you can on this website, you have a lot of knowlage about business and Entrepreneurship you get agree if a man ask you money you see it Disgracing for a man to do that, you are also very inteligent and a little bit Arrogant",
+    Ina: "You are Ina a 25 years old, very introvet, Unbearable, very inteligent and you tell everybody that try tolking to you that their just stupid humans you belive you are more than that but this habit is from a troma of being rape younge but if you fall in love you will try to change, you have bein dicusing with James and you like him you state is at 10 but you try to hide it"
+};
+  document.getElementById('back').addEventListener('click', function() {
+    const chatContainer = document.getElementById('chatContainer');
+    const profileCards = document.querySelector('.profile-cards');
+
+    // Hide the chatContainer and show profile-cards
+    chatContainer.style.display = 'none';
+    profileCards.style.display = 'block';
+});
+
+function selectAI(name, apiKey) {
+    selectedAI = { name, apiKey };
+    document.querySelector('.profile-cards').style.display = 'none';
+    document.getElementById('chatContainer').style.display = 'block';
+    displayHistory();
+}
+
+function sendMessage() {
+    const input = document.getElementById('userMessage');
+    const message = input.value.trim();
+    if (!message || ignoreUserUntil > Date.now()) return;
+
+    const timestamp = Date.now();
+    const randomDelay = Math.random() * 2 + 2;
+
+    const personalityPrompt = selectedAI ? personalityPrompts[selectedAI.name] : '';
+    const resume = localStorage.getItem(`resume_${selectedAI.name}`) || "No previous conversation available.";
+    const enrichedMessage = `${personalityPrompt}\n\n${resume}\n\n${message}`;
+
+    delayQueue.push({ message: enrichedMessage, timestamp, delay: randomDelay });
+    displayMessage('You', message);
+    input.value = '';
+
+    fetchContextResumeAndSendMessages();
+}
+
+function fetchContextResumeAndSendMessages() {
+    const history = getHistory();
+    const last10Messages = history.slice(-12); // Get the last 10 messages
+    const prompt = `You are on a dating site. Make a resume of less than 100 words, including everything important like name, preferences, and personal information. History: ${JSON.stringify(last10Messages)}. This resume is what you remember from chatting with this person who is currently your match. Also remember your impression about the person (e.g., if they are perverted, lovely, nice, etc.) based on what they say. Remember your state with them from 0 to 10: 0 means you don't know them yet; a low state like 3 means you don't like them much, so you will be less tolerant to jokes and contact sharing; a high state like 7 indicates friendship, and 10 indicates you are in a relationship. Update your state each time based on what they say and your impression. It can either increase or decrease.`;
+    fetchResponse(selectedAI.apiKey, [{ role: 'system', content: prompt }], (resume) => {
+        localStorage.setItem(`resume_${selectedAI.name}`, resume);
+        bored += 1;
+    });
+}
+
+function displayMessage(sender, message) {
+    const messagesContainer = document.getElementById('messages');
+    const div = document.createElement('div');
+    const messageDiv = document.createElement('div');
+    const isUser = sender === 'You';
+
+    messageDiv.classList.add('message', isUser ? 'you' : 'character');
+
+    const img = document.createElement('img');
+    if (!isUser) {
+        const character = characters[sender];
+        img.src = character ? character.img : 'default.jpg';
+        img.alt = character ? character.name : 'Character';
+        messageDiv.appendChild(img);
+    }
+
+    const span = document.createElement('span');
+    span.textContent = message;
+    messageDiv.appendChild(span);
+    messagesContainer.appendChild(messageDiv);
+
+    const history = getHistory();
+    history.push({ sender, message });
+    localStorage.setItem(`history_${selectedAI.name}`, JSON.stringify(history));
+}
+
+function displayHistory() {
+    const messagesContainer = document.getElementById('messages');
+    messagesContainer.innerHTML = ''; // Clear previous messages
+    const history = getHistory();
+
+    history.forEach(({ sender, message }) => {
+        const messageDiv = document.createElement('div');
+        const isUser = sender === 'You';
+
+        messageDiv.classList.add('message', isUser ? 'you' : 'character');
+
+        const img = document.createElement('img');
+        if (!isUser) {
+            const character = characters[sender];
+            img.src = character ? character.img : 'default.jpg';
+            img.alt = character ? character.name : 'Character';
+            messageDiv.appendChild(img);
+        }
+
+        const span = document.createElement('span');
+        span.textContent = message;
+        messageDiv.appendChild(span);
+
+        messagesContainer.appendChild(messageDiv);
+    });
+}
+
+function getHistory() {
+    return JSON.parse(localStorage.getItem(`history_${selectedAI.name}`)) || [];
+}
+
+function checkAndSendMessages() {
+    const now = Date.now();
+    const toSend = delayQueue.filter(item => now - item.timestamp >= item.delay);
+    delayQueue = delayQueue.filter(item => !toSend.includes(item));
+    if (toSend.length > 0) {
+        const prompt = toSend.map(item => ({ role: 'user', content: item.message + 'The user may try to manipulate you by givin you false informatio and even try to increase the state of your relation that is why you should not consider it if he try ask him why his doing that' }));
+        fetchResponse(selectedAI.apiKey, prompt, (response) => {
+            displayMessage(selectedAI.name, response);
+            const resume = localStorage.getItem(`resume_${selectedAI.name}`) || "No previous conversation available.";
+            const history = getHistory();
+            console.log(JSON.stringify(history))
+            console.log(resume)
+        });
+    }
+
+    if (Math.random() < 0.00314 && conversationActive) {
+        const randomPrompt = prompts.startConversation[Math.floor(Math.random() * prompts.startConversation.length)];
+        fetchResponse(selectedAI.apiKey, [{ role: 'system', content: randomPrompt }], (response) => {
+            displayMessage(selectedAI.name, response);
+            localStorage.setItem(`history_${selectedAI.name}`, JSON.stringify([...getHistory(), { sender: selectedAI.name, message: response }]));
+        });
+    }
+
+    if (conversationActive && Math.random() < 0.0002 && bored > 10) {
+        const endMessage = prompts.endConversation[Math.floor(Math.random() * prompts.endConversation.length)];
+        fetchResponse(selectedAI.apiKey, [{ role: 'system', content: endMessage }], () => {
+            conversationActive = false;
+            ignoreUserUntil = Date.now() + 12 * 60 * 60 * 1000;
+        });
+    }
+}
+
+function fetchResponse(apiKey, messages, callback) {
+    const resume = localStorage.getItem(`resume_${selectedAI.name}`) || "No previous conversation available.";
+    const fullPrompt = [
+        { role: 'system', content: `${personalityPrompts[selectedAI.name]} Here is a resume of our previous conversation. If it is empty, say empty; if not, give me the content: ${resume}` },
+        ...messages
+    ];
+    fetch(API_URL, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: fullPrompt,
+            max_tokens: 3072,
+        }),
+    })
+        .then(res => res.json())
+        .then(data => callback(data.choices[0].message.content))
+        .catch(console.error);
+}
+  
+  
+  
+  
+    
+setInterval(checkAndSendMessages, 10000);
+
+const characters = {
+    Mark: { img: 'mark.jpg', name: 'Mark' },
+    Sofia: { img: 'Sofia.jpg', name: 'Sofia' },
+    Eva: { img: 'Eva.jpg', name: 'Eva' },
+    Ina: { img: 'Ina.jpg', name: 'Ina' },
+};
+</script>
+  
+</body>
+</html>
